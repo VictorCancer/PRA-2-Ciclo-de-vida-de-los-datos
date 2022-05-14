@@ -1,0 +1,54 @@
+---
+title: "**Practica 2**"
+author: Maria Dolores Moyano Guerrero y Victor Cancer Castillo 
+date: "25 de Mayo de 2022"
+output:
+  html_document:
+    highlight: default
+    number_sections: yes
+    theme: cosmo
+    includes:
+      in_header: logouoc.html
+    toc: yes
+    toc_float: true
+    toc_depth: 2
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r,message=FALSE,warning=FALSE,results='hide',quietly = TRUE}
+library(ggplot2)
+library(corrplot)
+library(faraway)
+library(ggfortify)
+library(ResourceSelection)
+library(pROC)
+```
+
+
+******
+
+<font size="26"> __Titanic: Machine Learning from Disaster__ </font>
+
+******
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
