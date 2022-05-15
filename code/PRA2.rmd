@@ -28,6 +28,12 @@ library(faraway)
 library(ggfortify)
 library(ResourceSelection)
 library(pROC)
+library(grid)
+library(colorspace)
+library(Rcpp)
+library(vctrs)
+
+library(VIM)
 ```
 
 
@@ -51,11 +57,22 @@ Nos vamos a centrar aquí en tratar de averiguar qué características compartí
 
 Para tratar este problema vamos a utilizar los datos que se ofrecen en la competicción de [Kaggle](https://www.kaggle.com/competitions/titanic/overview), donde se da un dataset que contiene datos para entrenar el modelo y otro para hacer los tests del modelo creado. 
 
+Por un lado tenemos los datos para entrenar el modelo
+
 ```{r}
 train <- read.table(file="train.csv",sep=',',dec='.',stringsAsFactors = TRUE,header=TRUE)
-
 summary(train)
 ```
+
+Y por otro tenemos los datos para testear dicho modelo
+
+```{r}
+test <- read.table(file="test.csv",sep=',',dec='.',stringsAsFactors = TRUE,header=TRUE)
+summary(test)
+```
+
+
+
 
 Las variables que incluye el dataset son las siguientes: 
 
@@ -72,21 +89,111 @@ Las variables que incluye el dataset son las siguientes:
 * _Cabin_: Número de cabina
 * _Embarked_: Puerto de embarque (C = Cherbourg, Q = Queenstown, S = Southampton)
 
+
+Para hacer análisis (no modelaje) trataremos los datos completos (es decir los datos de test y de entrenamiento, sin la columna _Survived_)
+
+```{r}
+full <- rbind(test,train[-which(names(train) == "Survived")])
+```
+
 # Limpieza de los datos
 
+## Elementos nulos o ceros
+
+### Embarked
+
+Vemos entre los valores de la columna Embarked del dataset de entrenamiento que hay dos valores vacíos
+
+```{r}
+full[full$Embarked == "",]
+```
+
+Probablemente la relación más relevante entre el puerto de embarque la tiene el precio del billete (pues al hacer un viaje más largo se cobrará más al pasajero). Por lo tanto veamos con qué puerto encajan más estas dos pasajeras sabiendo que ellas pagaron 80$ por su billete de primera clase:
+
+```{r}
+ggplot(full[full$Embarked != "" & full$Pclass == "1",],aes(x=Embarked,y=Fare, fill=Embarked)) + geom_boxplot()+
+    theme(legend.position="none") + geom_hline(aes(yintercept=80), colour='yellow', linetype='dashed', lwd=2)
+
+```
+
+De esta gráfica podemos deducir que estas mujeres probablemente embarcaron en el puerto C, así que imputaremos ese valor a ambas mujeres: 
+
+```{r}
+full[full$Embarked=="",]$Embarked <- "C"
+train[train$Embarked=="",]$Embarked <- "C"
+```
+
+
+### Fare
+
+De las tarifas de los pasajes encontramos que tan solo hay un caso donde desconocemos el precio que se pagó: 
+
+```{r}
+full[is.na(full$Fare),]
+```
+
+De nuevo vamos a observar cuanto costaron estos pasajes observando el puerto de embarcación y la clase a la que pertenece este pasajero
+
+```{r}
+ggplot(full[!is.na(full$Fare) & full$Pclass == "3" & full$Embarked == "S" ,], aes(x=Fare)) +   
+  geom_density(color="darkblue", fill="lightblue",size=1)+ylab("Densidad")+xlab("Precio del pasaje") + 
+  geom_vline(xintercept = median(full[!is.na(full$Fare) & full$Pclass == "3" & full$Embarked == "S" ,]$Fare),color="red",size=1.1,linetype="dashed") + 
+  geom_vline(xintercept = mean(full[!is.na(full$Fare) & full$Pclass == "3" & full$Embarked == "S" ,]$Fare),color="green",size=1.1,linetype="dashed") +
+  annotate(geom = "text", label = c("Mediana", "Media"), x = c(median(full[!is.na(full$Fare) & full$Pclass == "3" & full$Embarked == "S" ,]$Fare), mean(full[!is.na(full$Fare) & full$Pclass == "3" & full$Embarked == "S" ,]$Fare)), y = c(0.05, 0.05), angle = 90, vjust = 1)
+```
+
+Viendo la distribución de los datos vemos que lo más correcto sería coger la mediana del precio del pasaje, que en este caso es ``r median(full[!is.na(full$Fare) & full$Pclass == "3" & full$Embarked == "S" ,]$Fare)``
+
+```{r}
+fare_median <-  median(full[!is.na(full$Fare) & full$Pclass == "3" & full$Embarked == "S" ,]$Fare)
+
+full[is.na(full$Fare),]$Fare <- fare_median
+test[is.na(test$Fare),]$Fare <- fare_median
+```
 
 
 
+### Age
 
+En la variable de edad encontramos que hay 177 NAs en el dataset de entrenamiento y 86 NAs en el de test. 
 
+La edad es una variable algo más complicada de imputar y una opción sería utilizar la mediana de la edad de los pasajeros, pero vamos a optar por utilizar el metodo kNN que nos imputará el valor de la edad utilizando los valores de los puntos más cercanos al que nos falta. 
 
+Las variables que tendremos en cuenta en esta imputación serán: 
 
+* Sex
+* PClass
+* SibSp
+* Parch
+* Fare
+* Embarked
+
+```{r}
+full_imp <- kNN(full,k=11,dist_var=c('Sex','Pclass','SibSp','Fare','Parch','Embarked'),variable='Age')
+```
+
+Para ver si esta imputación ha afectado a la distribución de edad 
+
+```{r}
+
+ggplot() + 
+  geom_density(data=full_imp, aes(x=Age,color='Imputado') , size=1) + 
+  geom_density(data=full, aes(x=Age, color = 'No imputado') ,size=1) + 
+  geom_vline(xintercept = median(full$Age,na.rm = TRUE),color="blue",size=1.1,linetype="dashed") +
+  geom_vline(xintercept = median(full_imp$Age),color="red",size=1.1,linetype="dashed") +
+  ylab("Frecuencia") + xlab("Edad") + theme(legend.position = 'right') +
+  scale_color_manual("DataSet",values = c('Imputado' = 'red', 'No imputado' = 'blue'))
+  
+```
+
+Podemos ver un crecimiento en la densidad de valores alrededor de la mediana, pero la distribución sigue teniendo una forma parecida a la de ante de imputar valores, por lo que damos por correctos los datos que hemos introducido para los valores NA de la edad.
 
 
 ```{r}
-test <- read.table(file="test.csv",sep=',',dec='.',stringsAsFactors = TRUE,header=TRUE)
+#full$Age[match( full_imp$PassengerId, full$PassengerId)] <- full_imp$Age[match( full_imp$PassengerId, full$PassengerId)]
+#train$Age[match( full_imp$PassengerId, train$PassengerId)] <- full_imp$Age[match( full_imp$PassengerId, full$PassengerId)]
+#test$Age[match( full_imp$PassengerId, test$PassengerId)] <- full_imp$Age[match( full_imp$PassengerId, full$PassengerId)]
 ```
-
 
 
 
