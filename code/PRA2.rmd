@@ -1,8 +1,11 @@
 ---
-title: "**Practica 2**"
-author: Maria Dolores Moyano Guerrero y Victor Cancer Castillo 
+title: '**Práctica 2 - Limpieza y análisis de datos**'
+author: "Maria Dolores Moyano Guerrero y Victor Cancer Castillo"
 date: "25 de Mayo de 2022"
 output:
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
   html_document:
     highlight: default
     number_sections: yes
@@ -10,9 +13,8 @@ output:
     includes:
       in_header: logouoc.html
     toc: yes
-    toc_float: true
+    toc_float: yes
     toc_depth: 2
-
 ---
 
 ```{r setup, include=FALSE}
@@ -35,6 +37,42 @@ library(pROC)
 
 ******
 
+# Descripción del dataset
+
+El desastre del Titanic fue un accidente marítimo que acaeció en el 1912 y que se llevó por delante más de 1500 vidas. 
+A bordo del Titanic iban más de 2000 pasajeros, por lo que cerca del 75% de los pasajerons fallecieron en el hundimiento del barco el cual no tenia botes salvavidas para todos los pasajeros. 
+
+Estas muertes no se dieron por igual para todos los grupos de pasajeros de manera aleatoria, sino que parece ser que hubo grupos dentro del barco que tuvieron más probabilidad de morir que otros, como podremos ver en este estudio. 
+
+Nos vamos a centrar aquí en tratar de averiguar qué características compartían en común los pasajeros que se salvaron/fallecieron para tratar de crear un modelo que sea capaz de predecir si un pasajero iba a morir o no. 
+
+
+# Integración y selección de los datos
+
+Para tratar este problema vamos a utilizar los datos que se ofrecen en la competicción de [Kaggle](https://www.kaggle.com/competitions/titanic/overview), donde se da un dataset que contiene datos para entrenar el modelo y otro para hacer los tests del modelo creado. 
+
+```{r}
+train <- read.table(file="train.csv",sep=',',dec='.',stringsAsFactors = TRUE,header=TRUE)
+
+summary(train)
+```
+
+Las variables que incluye el dataset son las siguientes: 
+
+* _PassengerId_: Número de identificación del pasajero
+* _Survived_: Indica si el pasajero sobrevivió (0 = No, 1 = Sí)
+* _Pclass_: Clase de tiquet (1 = Primera clase, 2 = Segunda clase, 3 = Tercera clase)
+* _Name_: Nombre del pasajero
+* _Sex_: Sexo del pasajero
+* _Age_: Edad del pasajero
+* _SibSp_: Número de hermanos/hermanas, esposos/esposas a bordo del Titanic
+* _Parch_: Número de padres/madres, hijos/hijas a bordo del Titanic
+* _Ticket_: Número de ticket
+* _Fare_: Tarifa del pasajero
+* _Cabin_: Número de cabina
+* _Embarked_: Puerto de embarque (C = Cherbourg, Q = Queenstown, S = Southampton)
+
+# Limpieza de los datos
 
 
 
@@ -45,8 +83,9 @@ library(pROC)
 
 
 
-
-
+```{r}
+test <- read.table(file="test.csv",sep=',',dec='.',stringsAsFactors = TRUE,header=TRUE)
+```
 
 
 
