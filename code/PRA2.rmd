@@ -32,7 +32,7 @@ library(grid)
 library(colorspace)
 library(Rcpp)
 library(vctrs)
-
+library(tidyverse)
 library(VIM)
 ```
 
@@ -152,6 +152,20 @@ test[is.na(test$Fare),]$Fare <- fare_median
 ```
 
 
+FALTA TRATAR LOS CASOS DE FARE 0
+
+
+```{r}
+full[full$Fare == 0,]
+```
+
+
+```{r}
+# Chisholm, Mr. Roderick Robert Crispin -> Diseñador del Titanic
+# Cunningham, Mr. Alfred Fleming -> Trabajador 
+```
+
+
 
 ### Age
 
@@ -174,7 +188,7 @@ full_imp <- kNN(full,k=11,dist_var=c('Sex','Pclass','SibSp','Fare','Parch','Emba
 
 Para ver si esta imputación ha afectado a la distribución de edad 
 
-```{r}
+```{r,warning=FALSE}
 
 ggplot() + 
   geom_density(data=full_imp, aes(x=Age,color='Imputado') , size=1) + 
@@ -188,13 +202,40 @@ ggplot() +
 
 Podemos ver un crecimiento en la densidad de valores alrededor de la mediana, pero la distribución sigue teniendo una forma parecida a la de ante de imputar valores, por lo que damos por correctos los datos que hemos introducido para los valores NA de la edad.
 
+Por lo tanto pasamos ahora a imputar estos valores en los datasets que estamos ahora gestionando:
 
-```{r}
-#full$Age[match( full_imp$PassengerId, full$PassengerId)] <- full_imp$Age[match( full_imp$PassengerId, full$PassengerId)]
-#train$Age[match( full_imp$PassengerId, train$PassengerId)] <- full_imp$Age[match( full_imp$PassengerId, full$PassengerId)]
-#test$Age[match( full_imp$PassengerId, test$PassengerId)] <- full_imp$Age[match( full_imp$PassengerId, full$PassengerId)]
+```{r, results='hide'}
+full$Age <- full_imp$Age
+
+train <- merge(train, full_imp[c('PassengerId','Age')], by.x=c("PassengerId"), by.y=c("PassengerId"), all.x=TRUE)
+train <- train[,-which(names(train) %in% c("Age.x","PassengerId.y"))]
+train %>% rename( Age = Age.y )
+
+test <- merge(test, full_imp[c('PassengerId','Age')], by.x=c("PassengerId"), by.y=c("PassengerId"), all.x=TRUE)
+test <- test[,-which(names(test) %in% c("Age.x","PassengerId.y"))]
+test %>% rename( Age = Age.y )
 ```
 
+
+
+## Outliers
+
+REVISAR OUTLIERS PARA FARE.
+
+# Análisis de los datos
+
+
+## Selección de los grupos
+
+
+## Normalidad y homogeneidad de la varianza
+
+## Comparación de grupos
+
+
+# Resultados
+
+# Conclusiones 
 
 
 
