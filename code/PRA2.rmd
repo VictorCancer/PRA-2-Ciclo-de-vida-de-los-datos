@@ -34,28 +34,28 @@ library(Rcpp)
 library(vctrs)
 library(tidyverse)
 library(VIM)
+library(ggpubr)
+library(caTools)
+
 ```
 
+------------------------------------------------------------------------
 
-******
+<font size="26"> **Titanic: Machine Learning from Disaster** </font>
 
-<font size="26"> __Titanic: Machine Learning from Disaster__ </font>
-
-******
+------------------------------------------------------------------------
 
 # Descripción del dataset
 
-El desastre del Titanic fue un accidente marítimo que acaeció en el 1912 y que se llevó por delante más de 1500 vidas. 
-A bordo del Titanic iban más de 2000 pasajeros, por lo que cerca del 75% de los pasajerons fallecieron en el hundimiento del barco el cual no tenia botes salvavidas para todos los pasajeros. 
+El desastre del RMS Titanic fue un accidente marítimo que acaeció en el 1912 y que se llevó por delante más de 1500 vidas. A bordo del Titanic iban más de 2000 pasajeros, por lo que cerca del 75% de los pasajerons fallecieron en el hundimiento del barco el cual no tenia botes salvavidas para todos los pasajeros.
 
-Estas muertes no se dieron por igual para todos los grupos de pasajeros de manera aleatoria, sino que parece ser que hubo grupos dentro del barco que tuvieron más probabilidad de morir que otros, como podremos ver en este estudio. 
+Estas muertes no se dieron por igual para todos los grupos de pasajeros de manera aleatoria, sino que parece ser que hubo grupos dentro del barco que tuvieron más probabilidad de morir que otros, como podremos ver en este estudio.
 
-Nos vamos a centrar aquí en tratar de averiguar qué características compartían en común los pasajeros que se salvaron/fallecieron para tratar de crear un modelo que sea capaz de predecir si un pasajero iba a morir o no. 
-
+Nos vamos a centrar aquí en tratar de averiguar qué características compartían en común los pasajeros que se salvaron/fallecieron para tratar de crear un modelo que sea capaz de predecir si un pasajero iba a morir o no.
 
 # Integración y selección de los datos
 
-Para tratar este problema vamos a utilizar los datos que se ofrecen en la competicción de [Kaggle](https://www.kaggle.com/competitions/titanic/overview), donde se da un dataset que contiene datos para entrenar el modelo y otro para hacer los tests del modelo creado. 
+Para tratar este problema vamos a utilizar los datos que se ofrecen en la competicción de [Kaggle](https://www.kaggle.com/competitions/titanic/overview), donde se da un dataset que contiene datos para entrenar el modelo y otro para hacer los tests del modelo creado.
 
 Por un lado tenemos los datos para entrenar el modelo
 
@@ -71,32 +71,30 @@ test <- read.table(file="test.csv",sep=',',dec='.',stringsAsFactors = TRUE,heade
 summary(test)
 ```
 
+Las variables que incluye el dataset son las siguientes:
 
+-   *PassengerId*: Número de identificación del pasajero
+-   *Survived*: Indica si el pasajero sobrevivió (0 = No, 1 = Sí)
+-   *Pclass*: Clase de tiquet (1 = Primera clase, 2 = Segunda clase, 3 = Tercera clase)
+-   *Name*: Nombre del pasajero
+-   *Sex*: Sexo del pasajero
+-   *Age*: Edad del pasajero
+-   *SibSp*: Número de hermanos/hermanas, esposos/esposas a bordo del Titanic
+-   *Parch*: Número de padres/madres, hijos/hijas a bordo del Titanic
+-   *Ticket*: Número de ticket
+-   *Fare*: Tarifa del pasajero
+-   *Cabin*: Número de cabina
+-   *Embarked*: Puerto de embarque (C = Cherbourg, Q = Queenstown, S = Southampton)
 
-
-Las variables que incluye el dataset son las siguientes: 
-
-* _PassengerId_: Número de identificación del pasajero
-* _Survived_: Indica si el pasajero sobrevivió (0 = No, 1 = Sí)
-* _Pclass_: Clase de tiquet (1 = Primera clase, 2 = Segunda clase, 3 = Tercera clase)
-* _Name_: Nombre del pasajero
-* _Sex_: Sexo del pasajero
-* _Age_: Edad del pasajero
-* _SibSp_: Número de hermanos/hermanas, esposos/esposas a bordo del Titanic
-* _Parch_: Número de padres/madres, hijos/hijas a bordo del Titanic
-* _Ticket_: Número de ticket
-* _Fare_: Tarifa del pasajero
-* _Cabin_: Número de cabina
-* _Embarked_: Puerto de embarque (C = Cherbourg, Q = Queenstown, S = Southampton)
-
-
-Para hacer análisis (no modelaje) trataremos los datos completos (es decir los datos de test y de entrenamiento, sin la columna _Survived_)
+Para hacer análisis (no modelaje) trataremos los datos completos (es decir los datos de test y de entrenamiento, sin la columna *Survived*)
 
 ```{r}
 full <- rbind(test,train[-which(names(train) == "Survived")])
 ```
 
 # Limpieza de los datos
+
+En primer lugar, vamos a estudiar si los datos tienen elementos vacíos
 
 ## Elementos nulos o ceros
 
@@ -108,7 +106,7 @@ Vemos entre los valores de la columna Embarked del dataset de entrenamiento que 
 full[full$Embarked == "",]
 ```
 
-Probablemente la relación más relevante entre el puerto de embarque la tiene el precio del billete (pues al hacer un viaje más largo se cobrará más al pasajero). Por lo tanto veamos con qué puerto encajan más estas dos pasajeras sabiendo que ellas pagaron 80$ por su billete de primera clase:
+Probablemente la relación más relevante entre el puerto de embarque la tiene el precio del billete (pues al hacer un viaje más largo se cobrará más al pasajero). Por lo tanto veamos con qué puerto encajan más estas dos pasajeras sabiendo que ellas pagaron 80\$ por su billete de primera clase:
 
 ```{r}
 ggplot(full[full$Embarked != "" & full$Pclass == "1",],aes(x=Embarked,y=Fare, fill=Embarked)) + geom_boxplot()+
@@ -116,17 +114,16 @@ ggplot(full[full$Embarked != "" & full$Pclass == "1",],aes(x=Embarked,y=Fare, fi
 
 ```
 
-De esta gráfica podemos deducir que estas mujeres probablemente embarcaron en el puerto C, así que imputaremos ese valor a ambas mujeres: 
+De esta gráfica podemos deducir que estas mujeres probablemente embarcaron en el puerto C, así que imputaremos ese valor a ambas mujeres:
 
 ```{r}
 full[full$Embarked=="",]$Embarked <- "C"
 train[train$Embarked=="",]$Embarked <- "C"
 ```
 
-
 ### Fare
 
-De las tarifas de los pasajes encontramos que tan solo hay un caso donde desconocemos el precio que se pagó: 
+De las tarifas de los pasajes encontramos que tan solo hay un caso donde desconocemos el precio que se pagó:
 
 ```{r}
 full[is.na(full$Fare),]
@@ -142,7 +139,7 @@ ggplot(full[!is.na(full$Fare) & full$Pclass == "3" & full$Embarked == "S" ,], ae
   annotate(geom = "text", label = c("Mediana", "Media"), x = c(median(full[!is.na(full$Fare) & full$Pclass == "3" & full$Embarked == "S" ,]$Fare), mean(full[!is.na(full$Fare) & full$Pclass == "3" & full$Embarked == "S" ,]$Fare)), y = c(0.05, 0.05), angle = 90, vjust = 1)
 ```
 
-Viendo la distribución de los datos vemos que lo más correcto sería coger la mediana del precio del pasaje, que en este caso es ``r median(full[!is.na(full$Fare) & full$Pclass == "3" & full$Embarked == "S" ,]$Fare)``
+Viendo la distribución de los datos vemos que lo más correcto sería coger la mediana del precio del pasaje, que en este caso es `r median(full[!is.na(full$Fare) & full$Pclass == "3" & full$Embarked == "S" ,]$Fare)`
 
 ```{r}
 fare_median <-  median(full[!is.na(full$Fare) & full$Pclass == "3" & full$Embarked == "S" ,]$Fare)
@@ -151,14 +148,13 @@ full[is.na(full$Fare),]$Fare <- fare_median
 test[is.na(test$Fare),]$Fare <- fare_median
 ```
 
-
 Por otro lado tenemos registros donde el precio del pasaje fue cero
 
 ```{r}
 full[full$Fare == 0,]
 ```
 
-Haciendo una busqueda por internet de los nombres de algunas de estas personas vemos algo que podíamos sopechar: eran parte de los trabajadores de la embarcación o relacionados con ésta (como el propio diseñador del Titanic, Roderick Robert Crispin). 
+Haciendo una busqueda por internet de los nombres de algunas de estas personas vemos algo que podíamos sopechar: eran parte de los trabajadores de la embarcación o relacionados con ésta (como el propio diseñador del Titanic, Roderick Robert Crispin).
 
 Puesto que realmente el pasaje no valía cero dolares sino que estas personas fueron invitadas, lo que vamos a hacer para que ésto no desvirtue los datos es imputar de nuevo la median, en este caso lo haremos según la clase de pasaje que tuvieran (todos eran del puerto de embarcación S)
 
@@ -184,28 +180,26 @@ test[test$Fare == 0 & test$Pclass == 1,]$Fare <- median_fare_1
 
 ```
 
-
-
 ### Age
 
-En la variable de edad encontramos que hay 177 NAs en el dataset de entrenamiento y 86 NAs en el de test. 
+En la variable de edad encontramos que hay 177 NAs en el dataset de entrenamiento y 86 NAs en el de test.
 
-La edad es una variable algo más complicada de imputar y una opción sería utilizar la mediana de la edad de los pasajeros, pero vamos a optar por utilizar el metodo kNN que nos imputará el valor de la edad utilizando los valores de los puntos más cercanos al que nos falta. 
+La edad es una variable algo más complicada de imputar y una opción sería utilizar la mediana de la edad de los pasajeros, pero vamos a optar por utilizar el metodo kNN que nos imputará el valor de la edad utilizando los valores de los puntos más cercanos al que nos falta.
 
-Las variables que tendremos en cuenta en esta imputación serán: 
+Las variables que tendremos en cuenta en esta imputación serán:
 
-* Sex
-* PClass
-* SibSp
-* Parch
-* Fare
-* Embarked
+-   Sex
+-   PClass
+-   SibSp
+-   Parch
+-   Fare
+-   Embarked
 
 ```{r}
 full_imp <- kNN(full,k=11,dist_var=c('Sex','Pclass','SibSp','Fare','Parch','Embarked'),variable='Age')
 ```
 
-Para ver si esta imputación ha afectado a la distribución de edad 
+Para ver si esta imputación ha afectado a la distribución de edad
 
 ```{r,warning=FALSE}
 
@@ -235,26 +229,233 @@ test <- test[,-which(names(test) %in% c("Age.x","PassengerId.y"))]
 test %>% rename( Age = Age.y )
 ```
 
-
-
 ## Outliers
 
-REVISAR OUTLIERS PARA FARE.
+Los valores extremos (o outliers) son aquellos datos que se encuentran muy alejados de la distribución normal de una variable o población. Hay diferentes métodos para identificar valores extremos, uno de ellos es mediante gráficos de cajas (boxplots), otros se basan en la distancia de Mahanlanobis o distancia de Cook, también se usan modelos estadísticos, supervisados o no supervisados, por ejemplo, mediante técnicas de clustering. En este caso utilizaremos la función boxplots.stats() de R.
+
+```{r, results='hide'}
+borrar<-c("PassengerId","Name","Ticket","Pclass","Embarked","Survived","Sex","Cabin" )
+fullr<-full[,!names(full) %in% borrar]
+boxplot(fullr, col=rainbow(ncol(fullr)))
+
+```
+
+Los valores extremos detectados son:
+
+Edad: Tras revisar los valores, se considera que son valores válidos
+
+```{r}
+
+  boxplot.stats(full$Age)$out
+```
+
+Fare (tarifa del pasajero):
+
+```{r}
+
+boxplot.stats(full$Fare)$out
+```
+
+Se ha buscado el rango de precios de los billetes (<https://www.20minutos.es/noticia/1365526/0/titanic/hundimiento/aniversario/>), y los precios máximos de la gráfica, 512.32, están dentro del rango, con lo que se consideran valores válidos.
 
 # Análisis de los datos
 
+En primer lugar, se va a dividir el conjunto de entrenamiento en varios grupos para realizar el análisis de los datos y así poder estudiar la supervivencia.
 
 ## Selección de los grupos
 
+Los grupos seleccionados serán los siguientes, para estudiar su relación con survived:
+
+Age: se estudiará el efecto del rango de edad del pasajero en la supervivencia. Embarked: se analizará el efecto del puerto de embarque en la supervivencia. Parch: número de padres/madres, hijos/hijas a bordo del Titanic y su influencia. Pclass: se analizará la influencia de clase del pasajero. Sex: incluencia del sexo del pasajero en la supervivencia. SibSp: influencia del número de hermanos/hermanas, esposos/esposas a bordo del Titanic en la supervivencia.
+
+### Edad vs survived
+
+```{r}
+train$GrupoEdad <- cut(train$Age, breaks = c(0,15,25,55,100), labels = c("Niños","Jóvenes","Adultos","Jubilados"))
+train$Survived <- as.factor(train$Survived)
+PGedad<-ggplot(train, aes(x=GrupoEdad, fill=Survived)) + geom_bar()
+PGedad
+```
+
+Se aprecia que el porcentaje de supervivientes aumenta cuanto menor es la edad.
+
+### Puerto de embarque vs survived
+
+```{r}
+ggplot(train, aes(x=Embarked, fill=Survived)) + geom_bar()
+```
+
+Hay una menor tasa de supervivencia, de los pasajeros embarcados en Southampton con respecto a los embarcados en Cherbourg y Queenstown.
+
+### Padres/madres, hijos e hijas vs survived
+
+```{r}
+ggplot(train, aes(x=Parch, fill=Survived)) + geom_bar()
+```
+
+No se aprecia diferencias significativas entre los diferentes elementos de esta agrupación, entendiéndosa que el número de padres/madres, hijos e hijas no afecta a la supervivencia.
+
+### Clase del pasaje vs survived
+
+```{r}
+PClase<-ggplot(train, aes(x=Pclass, fill=Survived)) + geom_bar()
+PClase
+```
+
+La clase es una variable que impacta fuertemente sobre la tasa de supervivencia.
+
+### Sexo del pasaje vs survived
+
+```{r}
+PSexo<-ggplot(train, aes(x=Sex, fill=Survived)) + geom_bar()
+PSexo
+```
+
+El sexo también impacta fuertemente sobre el índice de supervivencia, teniendo las mujeres más posibilidades de no morir.
+
+### Hermanos/hermanas, esposos/esposas vs survived
+
+```{r}
+ggplot(train, aes(x=SibSp, fill=Survived)) + geom_bar()
+```
+
+No se aprecia diferencias significativas entre los diferentes elementos de esta agrupación, entendiéndosa que esta variable no afecta a la tasa de supervivencia.
 
 ## Normalidad y homogeneidad de la varianza
 
+Para verficar la suposición de la normalidad, utilizamos el test de Shapiro-Wilk, considerado uno de los métodos más potentes. Para el estudio de la homocedasticidad usamos el test de Fligner-Killeen, ya que se ha detectado previamente que los datos no cumplen con la condición de normalidad.
+
+### Edad
+
+```{r}
+shapiro.test(train$Age)
+fligner.test(Age.y ~ Survived, data = train)
+```
+
+Normalidad: en el caso de la edad, p-value es menor que 0.05, por lo que se acepta la hipótesis nula del test, con lo que se concluye que la variable Age no sigue una distribución normal. Homocedasticidad: p-value es superior a 0,05, se acepta la hipótesis nula de homocedasticidad, como conclusión, la variable Edad no presenta varianzas estadísticamente diferentes para los diferentes grupos de Supervivencia.
+
+### Padres/madres, hijos e hijas
+
+```{r}
+shapiro.test(train$Parch)
+```
+
+Normalidad: en este caso, para Parch, p-value es menor que 0.05, por lo que se acepta la hipótesis nula del test, con lo que se concluye que la variable Age no sigue una distribución normal. Homocedasticidad: p-value es inferior a 0,05, no se acepta la hipótesis nula de homocedasticidad, como conclusión, la variable Parch presenta varianzas estadísticamente diferentes para los diferentes grupos de Supervivencia.
+
+### Tarifa del pasajero
+
+```{r}
+shapiro.test(train$Fare)
+fligner.test(Fare ~ Survived, data = train)
+```
+
+Normalidad: en el caso de la variable Tarifa, p-value es menor que 0.05, por lo que se acepta la hipótesis nula del test, con lo que se concluye que la variable Age no sigue una distribución normal. Homocedasticidad: p-value es inferior a 0,05, no se acepta la hipótesis nula de homocedasticidad, como conclusión, la variable Fare presenta varianzas estadísticamente diferentes para los diferentes grupos de Supervivencia.
+
+### Hermanos/hermanas, esposos/esposas
+
+```{r}
+shapiro.test(train$SibSp)
+fligner.test(SibSp ~ Survived, data = train)
+```
+
+Normalidad: Para la variable SibSp, p-value es menor que 0.05, por lo que se acepta la hipótesis nula del test, con lo que se concluye que la variable Age no sigue una distribución normal. Homocedasticidad: p-value es superior a 0,05, se acepta la hipótesis nula de homocedasticidad, como conclusión, la variable SibSp no presenta varianzas estadísticamente diferentes para los diferentes grupos de Supervivencia.
+
 ## Comparación de grupos
 
+Se van a comparar distintos grupos: Grupo de Edad, Clase, Sexo, Tarifa, hermanos/hermanas, esposos/esposas, padres/madres, hijos/hijas y Supervivencia
 
-# Resultados
+Primero se realizan los contrastes de Hipótesis entre los grupos con Survived
 
-# Conclusiones 
+### Grupo de Edad vs Supervivencia
 
+Por el tipo de variables, se puede utilizar el test chi-cuadrado:
+
+```{r}
+temporal<-table(train$Survived, train$GrupoEdad)
+plot(temporal, col=c("#9999FF","#CC66FF"), main="GrupoEdad vs Supervivientes")
+chisq.test(temporal)
+```
+Dependencia: p-value es inferior a < 0,05, se rechaza la hipótesis nula de independencia con lo que la supervivencia depende del grupo de edad.
+
+### Clase vs Supervivencia
+
+Por el tipo de variables, también se puede utilizar el test chi-cuadrado:
+
+```{r}
+temporal<-table(train$Survived, train$Pclass)
+plot(temporal, col=c("#9999FF","#CC66FF"), main="Clase vs Supervivientes")
+chisq.test(temporal)
+```
+Dependencia: p-value es inferior a < 0,05, se rechaza la hipótesis nula de independencia con lo que la supervivencia depende de la clase a la que pertenece el ticket.
+
+### Sexo vs Supervivencia
+
+Por el tipo de variables, se puede utilizar el test chi-cuadrado:
+
+```{r}
+temporal2<-table(train$Survived, train$Sex)
+plot(temporal2, col=c("#9999FF","#CC66FF"), main="Sexo vs Supervivencia")
+chisq.test(temporal2)
+```
+Dependencia: p-value es inferior a < 0,05, se rechaza la hipótesis nula de independencia con lo que la supervivencia depende del sexo del pasajero.
+
+### Tarifa vs Supervivencia
+
+Se va a realizar una regresión lineal para aproximar la relación de dependencia lineal entre las dos variables, mediante la función lm().
+
+
+datFare=lm( Survived ~ Fare, data=train)
+summary(datFare)
+
+Se aprecia un R-squared bajo, con lo que las variables no se correlacionan.
+
+### Padres/madres, hijos e hijas vs Supervivencia
+
+Se va a realizar una regresión lineal para aproximar la relación de dependencia lineal entre las dos variables, mediante la función lm().
+
+datParch=lm( Survived ~ Parch, data=train)
+summary(datParch)
+
+A continuación, se va a ejecutar el test de ANOVA, para confirmar que la diferencia con y sin la variable, no es significativa.
+
+```{r}
+tieneParch <- glm(Survived ~ Parch, family = binomial(link='logit'), data = train)
+summary(tieneParch)
+anova(tieneParch, test="Chisq")
+
+```
+
+Se puede apreciar la desviación de residuales es prácticamente la misma sin la variable que con la variable (1186.7 vs 1180.8). La variable Parch no depende de la variable Survived.
+
+### Métodos de clasificación
+
+
+# Resultados y Conclusiones
+
+Del estudio previo resulta que las variables Sex, Pclass y Age son las que tienen mayor relación con Survived.
+
+```{r}
+ggarrange(PSexo, PGedad, PClase, labels = c("S", "E", "C"), ncol = 1, nrow = 3)
+```
+Para evaluar la posibilidad de supervivencia, se van a crear diferentes modelos de predicción, para valorarlos a continuación.
+En primer lugar se van a dividir de nuevo los datos para realizar el análisis
+```{r}
+set.seed(345)
+```
+Y se crean las diferentes regresiones:
+
+Survived vs PClass + Sex + Age
+Survived vs PClass + Sex
+Survived vs PClass
+
+```{r}
+M0 <- glm( formula = Survived ~ Pclass + Sex + Age.y, data = train, family = binomial)
+summary(M0)
+M1 <- glm( formula = Survived ~ Pclass+ Sex, data = train, family = binomial)
+summary(M1)
+M3 <- glm( formula = Survived ~ Pclass, data = train, family = binomial)
+summary(M3)
+```
+Con el Dato AIC, llegamos a la conclusión de que el primer modelo, con las tres variables, es el mejor, con lo que la supervivencia de los pasajeros depende del sexo, edad y clase.
 
 
