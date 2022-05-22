@@ -21,7 +21,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r,message=FALSE,warning=FALSE,results='hide',quietly = TRUE}
+```{r,message=FALSE,warning=FALSE,results='hide',quietly = TRUE,include=FALSE}
 library(ggplot2)
 library(corrplot)
 library(faraway)
@@ -222,11 +222,11 @@ full$Age <- full_imp$Age
 
 train <- merge(train, full_imp[c('PassengerId','Age')], by.x=c("PassengerId"), by.y=c("PassengerId"), all.x=TRUE)
 train <- train[,-which(names(train) %in% c("Age.x","PassengerId.y"))]
-train %>% rename( Age = Age.y )
+train <- train %>% rename( Age = Age.y )
 
 test <- merge(test, full_imp[c('PassengerId','Age')], by.x=c("PassengerId"), by.y=c("PassengerId"), all.x=TRUE)
 test <- test[,-which(names(test) %in% c("Age.x","PassengerId.y"))]
-test %>% rename( Age = Age.y )
+test <- test %>% rename( Age = Age.y )
 ```
 
 ## Outliers
@@ -240,23 +240,21 @@ boxplot(fullr, col=rainbow(ncol(fullr)))
 
 ```
 
-Los valores extremos detectados son:
-
-Edad: Tras revisar los valores, se considera que son valores válidos
+Revisando los valores extremos de edad vemos que son valores válidos
 
 ```{r}
-
-  boxplot.stats(full$Age)$out
+min(boxplot.stats(full$Age)$out)
+max(boxplot.stats(full$Age)$out)
 ```
 
-Fare (tarifa del pasajero):
+Para el fare (tarifa del pasajero) encontramos:
 
 ```{r}
-
-boxplot.stats(full$Fare)$out
+min(boxplot.stats(full$Fare)$out)
+max(boxplot.stats(full$Fare)$out)
 ```
 
-Se ha buscado el rango de precios de los billetes (<https://www.20minutos.es/noticia/1365526/0/titanic/hundimiento/aniversario/>), y los precios máximos de la gráfica, 512.32, están dentro del rango, con lo que se consideran valores válidos.
+Se ha buscado el rango de precios de los billetes (<https://www.20minutos.es/noticia/1365526/0/titanic/hundimiento/aniversario/>), y los precios máximosy mínimos están dentro del rango, con lo que se consideran valores válidos.
 
 # Análisis de los datos
 
@@ -266,105 +264,124 @@ En primer lugar, se va a dividir el conjunto de entrenamiento en varios grupos p
 
 Los grupos seleccionados serán los siguientes, para estudiar su relación con survived:
 
-Age: se estudiará el efecto del rango de edad del pasajero en la supervivencia. Embarked: se analizará el efecto del puerto de embarque en la supervivencia. Parch: número de padres/madres, hijos/hijas a bordo del Titanic y su influencia. Pclass: se analizará la influencia de clase del pasajero. Sex: incluencia del sexo del pasajero en la supervivencia. SibSp: influencia del número de hermanos/hermanas, esposos/esposas a bordo del Titanic en la supervivencia.
+_Age_: se estudiará el efecto del rango de edad del pasajero en la supervivencia. 
+_Embarked_: se analizará el efecto del puerto de embarque en la supervivencia. 
+_Parch_: número de padres/madres, hijos/hijas a bordo del Titanic y su influencia. 
+_Pclass_: se analizará la influencia de clase del pasajero. 
+_Sex_: influencia del sexo del pasajero en la supervivencia. 
+_SibSp_ y _Parch_: influencia del número de hermanos/hermanas, esposos/esposas a bordo del Titanic en la supervivencia.
 
-### Edad vs survived
+Vamos a hacer un primer análisis descriptivo de cual podría ser la relacion entre estas variables y la probabilida de supervivencia de los pasajeros
 
 ```{r}
-train$GrupoEdad <- cut(train$Age, breaks = c(0,15,25,55,100), labels = c("Niños","Jóvenes","Adultos","Jubilados"))
+#Edad
+train$GrupoEdad <- cut(train$Age, breaks = c(0,16,30,60,100), labels = c("Niños","Jóvenes","Adultos","Ancianos"))
 train$Survived <- as.factor(train$Survived)
-PGedad<-ggplot(train, aes(x=GrupoEdad, fill=Survived)) + geom_bar()
+PGedad<-ggplot(train, aes(x=GrupoEdad, fill=Survived))  + geom_bar(position='fill') + ylab('Porcentaje de supervivientes')
+
+Pembarked <-ggplot(train, aes(x=Embarked, fill=Survived))  + geom_bar(position='fill') + ylab('Porcentaje de supervivientes')
+
+Pparch <-ggplot(train, aes(x=Parch, fill=Survived))  + geom_bar(position='fill') + ylab('Porcentaje de supervivientes')
+
+PClase<-ggplot(train, aes(x=Pclass, fill=Survived)) + geom_bar(position='fill') + ylab('Porcentaje de supervivientes')
+
+PSexo<-ggplot(train, aes(x=Sex, fill=Survived))  + geom_bar(position='fill') + ylab('Porcentaje de supervivientes')
+
+PSibSp <- ggplot(train, aes(x=SibSp, fill=Survived))  + geom_bar(position='fill') + ylab('Porcentaje de supervivientes')
+```
+
+
+```{r, figures-side, fig.show="hold", out.width="50%"}
 PGedad
-```
-
-Se aprecia que el porcentaje de supervivientes aumenta cuanto menor es la edad.
-
-### Puerto de embarque vs survived
-
-```{r}
-ggplot(train, aes(x=Embarked, fill=Survived)) + geom_bar()
-```
-
-Hay una menor tasa de supervivencia, de los pasajeros embarcados en Southampton con respecto a los embarcados en Cherbourg y Queenstown.
-
-### Padres/madres, hijos e hijas vs survived
-
-```{r}
-ggplot(train, aes(x=Parch, fill=Survived)) + geom_bar()
-```
-
-No se aprecia diferencias significativas entre los diferentes elementos de esta agrupación, entendiéndosa que el número de padres/madres, hijos e hijas no afecta a la supervivencia.
-
-### Clase del pasaje vs survived
-
-```{r}
-PClase<-ggplot(train, aes(x=Pclass, fill=Survived)) + geom_bar()
+Pembarked
+Pparch
 PClase
-```
-
-La clase es una variable que impacta fuertemente sobre la tasa de supervivencia.
-
-### Sexo del pasaje vs survived
-
-```{r}
-PSexo<-ggplot(train, aes(x=Sex, fill=Survived)) + geom_bar()
 PSexo
+PSibSp
 ```
 
-El sexo también impacta fuertemente sobre el índice de supervivencia, teniendo las mujeres más posibilidades de no morir.
 
-### Hermanos/hermanas, esposos/esposas vs survived
+__Age__: Se aprecia que el porcentaje de supervivientes aumenta cuanto menor es la edad.
 
-```{r}
-ggplot(train, aes(x=SibSp, fill=Survived)) + geom_bar()
-```
+__Embarked__: Hay una menor tasa de supervivencia, de los pasajeros embarcados en Southampton y Queenstown con respecto a los embarcados en Cherbourg.
 
-No se aprecia diferencias significativas entre los diferentes elementos de esta agrupación, entendiéndosa que esta variable no afecta a la tasa de supervivencia.
+__Parch__: Parece ser que los pasajeros con 1 a 3 padres/hijos tenian más probabilidades de sobrevivir.
+
+__Class__: La clase es una variable que impacta fuertemente sobre la tasa de supervivencia, siendo la tercera clase la más afectada por el accidente.
+
+__Sex__: El sexo también impacta fuertemente sobre el índice de supervivencia, teniendo las mujeres más posibilidades de no morir.
+
+__SibSp__: Parece que tener algún familiar puede aumentar tu probabilidad de sobrevivir, aunque ésta desciende conforme se tienen más familiares.
+
 
 ## Normalidad y homogeneidad de la varianza
 
-Para verficar la suposición de la normalidad, utilizamos el test de Shapiro-Wilk, considerado uno de los métodos más potentes. Para el estudio de la homocedasticidad usamos el test de Fligner-Killeen, ya que se ha detectado previamente que los datos no cumplen con la condición de normalidad.
+__Normalidad__
 
-### Edad
+Para verficar la suposición de la normalidad, utilizamos el test de Shapiro-Wilk, considerado uno de los métodos más potentes, en las variables númericas
 
-```{r}
-shapiro.test(train$Age)
-fligner.test(Age.y ~ Survived, data = train)
-```
+| **Variable** | **p-value Shapiro Test** |   **Normalidad**   |
+|:-------------------:|:-----------------:|:---------------:|
+|   __Age__   |  ``r shapiro.test(train$Age)$p``  | Distribución normal | 
+|   __Parch__  |  ``r shapiro.test(train$Parch)$p``  | Distribución normal | 
+|   __Fare__  |  ``r shapiro.test(train$Fare)$p``  | Distribución normal |
+|   __SibSp__  |  ``r shapiro.test(train$SibSp)$p``  | Distribución normal |
+|   __Fare__  |  ``r shapiro.test(train$Fare)$p``  | Distribución normal |
 
-Normalidad: en el caso de la edad, p-value es menor que 0.05, por lo que se acepta la hipótesis nula del test, con lo que se concluye que la variable Age no sigue una distribución normal. Homocedasticidad: p-value es superior a 0,05, se acepta la hipótesis nula de homocedasticidad, como conclusión, la variable Edad no presenta varianzas estadísticamente diferentes para los diferentes grupos de Supervivencia.
+Se encuentra en todos los casos que el p-value es menor a 0.05, con lo que todos siguen una distribución normal.
 
-### Padres/madres, hijos e hijas
+__Homocedasticidad__
 
-```{r}
-shapiro.test(train$Parch)
-```
-
-Normalidad: en este caso, para Parch, p-value es menor que 0.05, por lo que se acepta la hipótesis nula del test, con lo que se concluye que la variable Age no sigue una distribución normal. Homocedasticidad: p-value es inferior a 0,05, no se acepta la hipótesis nula de homocedasticidad, como conclusión, la variable Parch presenta varianzas estadísticamente diferentes para los diferentes grupos de Supervivencia.
-
-### Tarifa del pasajero
+Para el estudio de la homocedasticidad usamos el estadístico F, que se puede aplicar con la función _var.test()_. Lo aplicaremos para unos grupos a modo de ejemplo
 
 ```{r}
-shapiro.test(train$Fare)
-fligner.test(Fare ~ Survived, data = train)
+var.test(x=train[train$Embarked=='S','Fare'],y=train[train$Embarked=='C','Fare'])
 ```
 
-Normalidad: en el caso de la variable Tarifa, p-value es menor que 0.05, por lo que se acepta la hipótesis nula del test, con lo que se concluye que la variable Age no sigue una distribución normal. Homocedasticidad: p-value es inferior a 0,05, no se acepta la hipótesis nula de homocedasticidad, como conclusión, la variable Fare presenta varianzas estadísticamente diferentes para los diferentes grupos de Supervivencia.
+Al comparar los precios de los billetes de los puertos de embarque S y C encontramos que hay una diferencia significativa entre las varianzas de los dos grupos. 
 
-### Hermanos/hermanas, esposos/esposas
+Podemos aplicar este mismo test para tratar de encontrar si hay homogeneidad en la varianza para los sexos en la variable de edad 
 
 ```{r}
-shapiro.test(train$SibSp)
-fligner.test(SibSp ~ Survived, data = train)
+var.test(x=train[train$Sex=='male','Age'],y=train[train$Sex=='female','Age'])
 ```
 
-Normalidad: Para la variable SibSp, p-value es menor que 0.05, por lo que se acepta la hipótesis nula del test, con lo que se concluye que la variable Age no sigue una distribución normal. Homocedasticidad: p-value es superior a 0,05, se acepta la hipótesis nula de homocedasticidad, como conclusión, la variable SibSp no presenta varianzas estadísticamente diferentes para los diferentes grupos de Supervivencia.
+En este caso encontramos que las varianzas no muestran diferencias significativas entre sexos.
+
 
 ## Comparación de grupos
 
-Se van a comparar distintos grupos: Grupo de Edad, Clase, Sexo, Tarifa, hermanos/hermanas, esposos/esposas, padres/madres, hijos/hijas y Supervivencia
+### Correlación entre variables 
 
-Primero se realizan los contrastes de Hipótesis entre los grupos con Survived
+Nos interesa saber si hay posibles relaciones entre las variables que estamos teniendo en cuenta, por lo que haremos un calculo de la matriz de correlación para las variables númericas
+
+```{r,include=FALSE}
+train$Survived <- as.numeric(train$Survived)
+train$Pclass <- as.numeric(train$Pclass) 
+```
+
+
+```{r}
+cor_table <- cor(train[,c("Survived","Pclass","SibSp","Parch","Fare","Age")],use = "complete.obs")
+corrplot.mixed(cor_table,upper="circle",number.cex=.7,tl.cex=.8, title="Correlacion entre variables", mar=c(0,0,1,0))
+```
+
+```{r,include=FALSE}
+train$Survived <- as.factor(train$Survived)
+train$Pclass <- as.factor(train$Pclass) 
+```
+
+
+Vemos que hay una clara relación entre la clase del pasaje y el precio de éste, como era de esperar. 
+La edad también influye en qué tipo de pasaje se compra, así como su precio. 
+
+Otra relación que encontramos se da entre el numero de hijos-padres con hermanos-esposos, con un coeficiente de correlación de 0.38. De nuevo la edad vuelve a tener cierta importancia para estas variables. 
+
+Finalmente vemos que hay una clara relación entre la clase de pasaje y el la probabilidad de sobrevivir al accidente del Titanic. 
+
+
+
+
 
 ### Grupo de Edad vs Supervivencia
 
@@ -449,7 +466,7 @@ Survived vs PClass + Sex
 Survived vs PClass
 
 ```{r}
-M0 <- glm( formula = Survived ~ Pclass + Sex + Age.y, data = train, family = binomial)
+M0 <- glm( formula = Survived ~ Pclass + Sex + Age, data = train, family = binomial)
 summary(M0)
 M1 <- glm( formula = Survived ~ Pclass+ Sex, data = train, family = binomial)
 summary(M1)
