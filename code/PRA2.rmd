@@ -3,9 +3,6 @@ title: '**Práctica 2 - Limpieza y análisis de datos**'
 author: "Maria Dolores Moyano Guerrero y Victor Cancer Castillo"
 date: "25 de Mayo de 2022"
 output:
-  pdf_document:
-    toc: yes
-    toc_depth: '2'
   html_document:
     highlight: default
     number_sections: yes
@@ -15,6 +12,9 @@ output:
     toc: yes
     toc_float: yes
     toc_depth: 2
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
 ---
 
 ```{r setup, include=FALSE}
@@ -68,7 +68,6 @@ Y por otro tenemos los datos para testear dicho modelo
 
 ```{r}
 test <- read.table(file="test.csv",sep=',',dec='.',stringsAsFactors = TRUE,header=TRUE)
-summary(test)
 ```
 
 Las variables que incluye el dataset son las siguientes:
@@ -322,11 +321,11 @@ Para verficar la suposición de la normalidad, utilizamos el test de Shapiro-Wil
 
 | **Variable** | **p-value Shapiro Test** |   **Normalidad**   |
 |:-------------------:|:-----------------:|:---------------:|
-|   __Age__   |  ``r shapiro.test(train$Age)$p``  | Distribución normal | 
-|   __Parch__  |  ``r shapiro.test(train$Parch)$p``  | Distribución normal | 
-|   __Fare__  |  ``r shapiro.test(train$Fare)$p``  | Distribución normal |
-|   __SibSp__  |  ``r shapiro.test(train$SibSp)$p``  | Distribución normal |
-|   __Fare__  |  ``r shapiro.test(train$Fare)$p``  | Distribución normal |
+|   __Age__   |  ``r round(shapiro.test(train$Age)$p,6)``  | Distribución normal | 
+|   __Parch__  |  ``r round(shapiro.test(train$Parch)$p,6)``  | Distribución normal | 
+|   __Fare__  |  ``r round(shapiro.test(train$Fare)$p,6)``  | Distribución normal |
+|   __SibSp__  |  ``r round(shapiro.test(train$SibSp)$p,6)``  | Distribución normal |
+|   __Fare__  |  ``r round(shapiro.test(train$Fare)$p,6)``  | Distribución normal |
 
 Se encuentra en todos los casos que el p-value es menor a 0.05, con lo que todos siguen una distribución normal.
 
@@ -356,19 +355,14 @@ En este caso encontramos que las varianzas no muestran diferencias significativa
 Nos interesa saber si hay posibles relaciones entre las variables que estamos teniendo en cuenta, por lo que haremos un calculo de la matriz de correlación para las variables númericas
 
 ```{r,include=FALSE}
-train$Survived <- as.numeric(train$Survived)
-train$Pclass <- as.numeric(train$Pclass) 
+train$Survived_num <- as.numeric(train$Survived)
+train$Pclass_num <- as.numeric(train$Pclass) 
 ```
 
 
 ```{r}
-cor_table <- cor(train[,c("Survived","Pclass","SibSp","Parch","Fare","Age")],use = "complete.obs")
+cor_table <- cor(train[,c("Survived_num","Pclass_num","SibSp","Parch","Fare","Age")],use = "complete.obs")
 corrplot.mixed(cor_table,upper="circle",number.cex=.7,tl.cex=.8, title="Correlacion entre variables", mar=c(0,0,1,0))
-```
-
-```{r,include=FALSE}
-train$Survived <- as.factor(train$Survived)
-train$Pclass <- as.factor(train$Pclass) 
 ```
 
 
@@ -380,99 +374,140 @@ Otra relación que encontramos se da entre el numero de hijos-padres con hermano
 Finalmente vemos que hay una clara relación entre la clase de pasaje y el la probabilidad de sobrevivir al accidente del Titanic. 
 
 
+### Contraste de hipotesis
 
+Nos planteamos la siguiente pregunta: ¿es el porcentaje de fallecidos más alto en el el grupo de tercera clase que en el resto de clases?
 
+La hipotesis nula y alternativa son entonces: 
 
-### Grupo de Edad vs Supervivencia
+$$
+H_0: p_{12} = p_3 \ ; \ H_1: p_{12} > p_3
+$$
 
-Por el tipo de variables, se puede utilizar el test chi-cuadrado:
+donde $p_{12}$ es la proporción de supervivivientes de clase uno y dos y $p_3$ es la de tercera clase. 
 
-```{r}
-temporal<-table(train$Survived, train$GrupoEdad)
-plot(temporal, col=c("#9999FF","#CC66FF"), main="GrupoEdad vs Supervivientes")
-chisq.test(temporal)
-```
-Dependencia: p-value es inferior a < 0,05, se rechaza la hipótesis nula de independencia con lo que la supervivencia depende del grupo de edad.
+Puesto que nos hacemos la pregunta para inferir el valor en la población utilizando una muestra podemos asumir que la media va a seguir una distribución normal gracias al teorema del límite central. Podemos asumir lo mismo de la diferencia de las proporciones, $p_{12}-p_3$. 
 
-### Clase vs Supervivencia
+Sin embargo desconocemos la varianza de la población ni si las varianzas entre grupos son iguales, por lo que vamos a utilizar la diferencia de las proporciones :
 
-Por el tipo de variables, también se puede utilizar el test chi-cuadrado:
+$$
+z  = \frac{(\hat{p}_{12}-\hat{p}_3)-(p_{12}-p_3)}{\sqrt{\frac{p_{12}(1-p_{12})}{n_{12}}-\frac{p_3(1-p_3)}{n_3}}} \sim N(0,1)
+$$
 
-```{r}
-temporal<-table(train$Survived, train$Pclass)
-plot(temporal, col=c("#9999FF","#CC66FF"), main="Clase vs Supervivientes")
-chisq.test(temporal)
-```
-Dependencia: p-value es inferior a < 0,05, se rechaza la hipótesis nula de independencia con lo que la supervivencia depende de la clase a la que pertenece el ticket.
+donde si se cumple la hipótesis nula, que es la hipótesis que queremos contrastar, tenemos $p_{12}=p_3=p$ y por lo tanto el estadístico de contraste es
 
-### Sexo vs Supervivencia
+$$
+z = \frac{\hat{p}_{12}-\hat{p}_3}{\sqrt{\hat{p}(1-\hat{p})\left( \frac{1}{n_{12}}+ \frac{1}{n_3}\right)}} \ ; \ \hat{p} = \frac{n_{12}\, \hat{p}_{12}+n_3\,\hat{p}_3}{n_{12}+n_3}
+$$
 
-Por el tipo de variables, se puede utilizar el test chi-cuadrado:
+donde $\hat{p}$ es la estimación de la proporción poblacional común.
 
-```{r}
-temporal2<-table(train$Survived, train$Sex)
-plot(temporal2, col=c("#9999FF","#CC66FF"), main="Sexo vs Supervivencia")
-chisq.test(temporal2)
-```
-Dependencia: p-value es inferior a < 0,05, se rechaza la hipótesis nula de independencia con lo que la supervivencia depende del sexo del pasajero.
-
-### Tarifa vs Supervivencia
-
-Se va a realizar una regresión lineal para aproximar la relación de dependencia lineal entre las dos variables, mediante la función lm().
-
-
-datFare=lm( Survived ~ Fare, data=train)
-summary(datFare)
-
-Se aprecia un R-squared bajo, con lo que las variables no se correlacionan.
-
-### Padres/madres, hijos e hijas vs Supervivencia
-
-Se va a realizar una regresión lineal para aproximar la relación de dependencia lineal entre las dos variables, mediante la función lm().
-
-datParch=lm( Survived ~ Parch, data=train)
-summary(datParch)
-
-A continuación, se va a ejecutar el test de ANOVA, para confirmar que la diferencia con y sin la variable, no es significativa.
+Vamos a definir nuestra propia función para llevar a cabo este análisis
 
 ```{r}
-tieneParch <- glm(Survived ~ Parch, family = binomial(link='logit'), data = train)
-summary(tieneParch)
-anova(tieneParch, test="Chisq")
+test_prop <- function(x,NC){
+  
+  p1 <- sum(x$Survived == 1 & x$Pclass== 3) / sum(x$Pclass== 3)
+  p2 <- sum(x$Survived == 1 & x$Pclass!=3) / sum(x$Pclass!= 3)
+  
+  #Podemos calcular p sin necesidad de utilizar la formula de arriba
+  p <- sum(x$Survived == 1) / nrow(x)
+  
+  n1 <- sum(x$Pclass== 3)
+  n2 <- sum(x$Pclass!= 3)
+  
+  zobs <- (p1-p2)/sqrt(p*(1-p)*((1/n1)+(1/n2)))
+  
+  zcrit <- qnorm(1-NC/100, lower.tail=TRUE)
+  pobs <- pnorm(zobs,lower.tail=TRUE)
+
+  round(c(zobs,zcrit,pobs,p1,p2),5)
+}
+
+test_prop(train,97)
 
 ```
 
-Se puede apreciar la desviación de residuales es prácticamente la misma sin la variable que con la variable (1186.7 vs 1180.8). La variable Parch no depende de la variable Survived.
+Por lo que concluimos con un nivel de confianza de 97% que un pasajero de tercera clase tiene más probabilidad de fallecer que si fuera de clase superior. Esto es debido a que $z_{obs}$ es mucho mejor a $z_{crit}$, o dicho de otra manera, encontramos un p-value enormemente pequeño, lo cual nos permite descartar la hipótesis nula.
 
-### Métodos de clasificación
+
+### Regresión logística
+
+
+Queremos crear un modelo de regresión para poder predecir si una persona del dataset de test ha sobrevivido o no. A partir de los gráficos del apartado anterior hemos visto clara una relación entre la variables Survived con Sex y Pclass, por lo que estas variables seguro entrarán en el modelo. 
+
+
+```{r}
+M0 <- glm( formula = Survived ~ Pclass + Sex, data = train, family=binomial(link=logit))
+summary(M0)
+```
+
+Nos cuestionamos ahora si más variables podrían hacer mejorar el modelo, como por ejemplo el puerto de embarque
+
+```{r}
+M1 <- glm( formula = Survived ~ Pclass + Sex + Embarked, data = train, family=binomial(link=logit))
+summary(M1)
+```
+
+vemos que el factor AIC (Akaike information criterion) ha disminuido, por lo que el modelo mejora. Además los coeficientes del resto de variables no se han visto afectados, lo cual podria indicar una correlación significativa entre las variables explicativas. 
+
+Seguimos pues probando con más variables, en este caso el de la edad: 
+
+```{r}
+M2 <- glm( formula = Survived ~ Pclass + Sex + Embarked + Age, data = train, family=binomial(link=logit))
+summary(M2)
+```
+
+vemos que el modelo vuelve a mejorar, disminuyendo el AIC. En este caso vemos que el coeficiente de Pclass ha decrecido, mostrando una relación entre clase y edad que ya vimos previamente. El cambio en el coeficiente no es suficientemente grande como para descartar la variable. 
+
+Finalmente nos planteamos incluir también las variables SibSp y/o Parch. Hay una clara relación entre ambas variables por lo que incluir ambas quizás no es buena idea, veamos el AIC que nos dan cada una de ellas: 
+
+```{r}
+M3 <- glm( formula = Survived ~ Pclass + Sex + Embarked + Age + Parch , data = train, family=binomial(link=logit))
+M3$aic
+M4 <- glm( formula = Survived ~ Pclass + Sex + Embarked + Age + SibSp , data = train, family=binomial(link=logit))
+M4$aic
+M5 <- glm( formula = Survived ~ Pclass + Sex + Embarked + Age + Parch + SibSp, data = train, family=binomial(link=logit))
+M5$aic
+```
+
+Efectivamente vemos que es mejor quedarse tan solo con la variable SibSp en este caso, por lo que descartamos la variable Parch. 
+
 
 
 # Resultados y Conclusiones
 
-Del estudio previo resulta que las variables Sex, Pclass y Age son las que tienen mayor relación con Survived.
+Del estudio inicial resulta que las variables Sex, Pclass y Age son las que tienen mayor relación con Survived, puesto que hemos visto en las gráficas de supervivencia vs cada grupo cómo habia una clara relación entre estas variables. 
+
+Hay variables que hemos desechado como el número de cabina o el nombre del pasajero puesto que hemos asumido que no tienen relación con la probabilidad de sobrevivir al accidente. Además hemos visto que hay una fuerte relación entre la clase del billete y el precio de éste, por lo que a la hora de proponer la regresión logística hemos decidido descartarla para el modelo.  
+
+Haciendo una comparación entre los diferentes modelos de regresión logistica que hemos planteado hemos encontrado que el modelo que mejores resultados arrojaba era el que utilizaba las variables Pclass,  Sex, Embarked, Age y SibSp. 
+
+Ahora que tenemos ya el modelo construido podemos finalmente participar en la competición propuesta en [Kaggle](https://www.kaggle.com/competitions/titanic/overview), por lo que vamos a aplicar nuestro modelo al dataset de test y extraer los valores predecidos para la variable Survived: 
+
 
 ```{r}
-ggarrange(PSexo, PGedad, PClase, labels = c("S", "E", "C"), ncol = 1, nrow = 3)
+result <- predict(M5, test, type="response")
+res_df <- data.frame(test$PassengerId,result)
+#Si el resultado es menor a 0.5 le ponemos 0, sino 1
+res_df$result_n <- ifelse(res_df$result < 0.5, 0,1)
+res_df <- res_df %>% rename( PassengerId = test.PassengerId )
 ```
-Para evaluar la posibilidad de supervivencia, se van a crear diferentes modelos de predicción, para valorarlos a continuación.
-En primer lugar se van a dividir de nuevo los datos para realizar el análisis
-```{r}
-set.seed(345)
-```
-Y se crean las diferentes regresiones:
 
-Survived vs PClass + Sex + Age
-Survived vs PClass + Sex
-Survived vs PClass
+Para acabar pasamos a comparar nuestra predicción con los valores reales que se nos aportan en Kaggle. 
 
 ```{r}
-M0 <- glm( formula = Survived ~ Pclass + Sex + Age, data = train, family = binomial)
-summary(M0)
-M1 <- glm( formula = Survived ~ Pclass+ Sex, data = train, family = binomial)
-summary(M1)
-M3 <- glm( formula = Survived ~ Pclass, data = train, family = binomial)
-summary(M3)
+real_res <- read.table(file="gender_submission.csv",sep=',',dec='.',stringsAsFactors = TRUE,header=TRUE)
+pred_vs_real <- merge(real_res,res_df, by=c("PassengerId"), all.x=TRUE)
 ```
-Con el Dato AIC, llegamos a la conclusión de que el primer modelo, con las tres variables, es el mejor, con lo que la supervivencia de los pasajeros depende del sexo, edad y clase.
+
+La predicción de nuestro modelo ha acertado un ``r round(100*sum(pred_vs_real$Survived == pred_vs_real$result_n)/nrow(pred_vs_real),2)``% de los casos, lo cual consideramos es un resultado muy satisfactorio. 
+
+
+
+
+
+
+
 
 
