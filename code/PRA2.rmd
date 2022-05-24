@@ -473,7 +473,24 @@ M5$aic
 
 Efectivamente vemos que es mejor quedarse tan solo con la variable SibSp en este caso, por lo que descartamos la variable Parch. 
 
+Para terminar, vamos a comprobar lo bien que funciona nuestra regresión con este mismo dataset (más adelante lo veremos con el de test) utilizando la curva ROC
 
+
+```{r}
+prob <- predict(M5, train, type="response")
+
+r <- roc(train$Survived,prob,data=train)
+
+plot (r)
+```
+
+Esta curva, contra más cerca está de la esquia superior izquierda está, menor es el error que está cometiendo. De hecho podemos extraer un valor númerico que nos dirá con mejor precisión lo bueno que es el modelo: 
+
+```{r}
+auc(r)
+```
+
+Vemos que tenemos un AUC de 0.86. Generalmente se dice que entre 0.6 y 0.8 el modelo se comporta de manera aceptable, pero por encima de 0.8 el modelo se ajusta bien a los datos que intenta reproducir. 
 
 # Resultados y Conclusiones
 
@@ -494,7 +511,7 @@ res_df$result_n <- ifelse(res_df$result < 0.5, 0,1)
 res_df <- res_df %>% rename( PassengerId = test.PassengerId )
 ```
 
-Para acabar pasamos a comparar nuestra predicción con los valores reales que se nos aportan en Kaggle. 
+Para acabar pasamos a comparar nuestra predicción con los valores reales que se nos aportan en Kaggle para ver si nuestro modelo podría ser utilizado en la competición presentada 
 
 ```{r}
 real_res <- read.table(file="gender_submission.csv",sep=',',dec='.',stringsAsFactors = TRUE,header=TRUE)
