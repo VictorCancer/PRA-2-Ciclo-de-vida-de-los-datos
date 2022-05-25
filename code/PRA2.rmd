@@ -264,10 +264,15 @@ En primer lugar, se va a dividir el conjunto de entrenamiento en varios grupos p
 Los grupos seleccionados serán los siguientes, para estudiar su relación con survived:
 
 _Age_: se estudiará el efecto del rango de edad del pasajero en la supervivencia. 
+
 _Embarked_: se analizará el efecto del puerto de embarque en la supervivencia. 
+
 _Parch_: número de padres/madres, hijos/hijas a bordo del Titanic y su influencia. 
+
 _Pclass_: se analizará la influencia de clase del pasajero. 
+
 _Sex_: influencia del sexo del pasajero en la supervivencia. 
+
 _SibSp_ y _Parch_: influencia del número de hermanos/hermanas, esposos/esposas a bordo del Titanic en la supervivencia.
 
 Vamos a hacer un primer análisis descriptivo de cual podría ser la relacion entre estas variables y la probabilida de supervivencia de los pasajeros
@@ -477,7 +482,7 @@ Para terminar, vamos a comprobar lo bien que funciona nuestra regresión con est
 
 
 ```{r}
-prob <- predict(M5, train, type="response")
+prob <- predict(M4, train, type="response")
 
 r <- roc(train$Survived,prob,data=train)
 
@@ -504,7 +509,7 @@ Ahora que tenemos ya el modelo construido podemos finalmente participar en la co
 
 
 ```{r}
-result <- predict(M5, test, type="response")
+result <- predict(M4, test, type="response")
 res_df <- data.frame(test$PassengerId,result)
 #Si el resultado es menor a 0.5 le ponemos 0, sino 1
 res_df$result_n <- ifelse(res_df$result < 0.5, 0,1)
