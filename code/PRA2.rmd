@@ -263,17 +263,17 @@ En primer lugar, se va a dividir el conjunto de entrenamiento en varios grupos p
 
 Los grupos seleccionados serán los siguientes, para estudiar su relación con survived:
 
-_Age_: se estudiará el efecto del rango de edad del pasajero en la supervivencia. 
+__Age__: se estudiará el efecto del rango de edad del pasajero en la supervivencia. 
 
-_Embarked_: se analizará el efecto del puerto de embarque en la supervivencia. 
+__Embarked__: se analizará el efecto del puerto de embarque en la supervivencia. 
 
-_Parch_: número de padres/madres, hijos/hijas a bordo del Titanic y su influencia. 
+__Parch__: número de padres/madres, hijos/hijas a bordo del Titanic y su influencia. 
 
-_Pclass_: se analizará la influencia de clase del pasajero. 
+__Pclass__: se analizará la influencia de clase del pasajero. 
 
-_Sex_: influencia del sexo del pasajero en la supervivencia. 
+__Sex__: influencia del sexo del pasajero en la supervivencia. 
 
-_SibSp_ y _Parch_: influencia del número de hermanos/hermanas, esposos/esposas a bordo del Titanic en la supervivencia.
+__SibSp__ y __Parch__: influencia del número de hermanos/hermanas, esposos/esposas a bordo del Titanic en la supervivencia.
 
 Vamos a hacer un primer análisis descriptivo de cual podría ser la relacion entre estas variables y la probabilida de supervivencia de los pasajeros
 
@@ -525,7 +525,19 @@ pred_vs_real <- merge(real_res,res_df, by=c("PassengerId"), all.x=TRUE)
 
 La predicción de nuestro modelo ha acertado un ``r round(100*sum(pred_vs_real$Survived == pred_vs_real$result_n)/nrow(pred_vs_real),2)``% de los casos, lo cual consideramos es un resultado muy satisfactorio. 
 
+Exportamos por tanto la solución encontrada: 
 
+```{r}
+write.csv(res_df,'prediction.csv')
+```
+
+
+
+| **Contribucion** | **Firma** |
+|:-------------------:|:-----------------:|:---------------:|
+|   __Investigación previa__   |  VCC , MMG  |  
+|   __Redacción de las respuestas__  |  VCC , MMG |  
+|   __Desarrollo código__  |  VCC , MMG |
 
 
 

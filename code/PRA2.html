@@ -1852,18 +1852,18 @@ estudiar la supervivencia.</p>
 grupos</h2>
 <p>Los grupos seleccionados serán los siguientes, para estudiar su
 relación con survived:</p>
-<p><em>Age</em>: se estudiará el efecto del rango de edad del pasajero
-en la supervivencia.</p>
-<p><em>Embarked</em>: se analizará el efecto del puerto de embarque en
-la supervivencia.</p>
-<p><em>Parch</em>: número de padres/madres, hijos/hijas a bordo del
-Titanic y su influencia.</p>
-<p><em>Pclass</em>: se analizará la influencia de clase del
+<p><strong>Age</strong>: se estudiará el efecto del rango de edad del
+pasajero en la supervivencia.</p>
+<p><strong>Embarked</strong>: se analizará el efecto del puerto de
+embarque en la supervivencia.</p>
+<p><strong>Parch</strong>: número de padres/madres, hijos/hijas a bordo
+del Titanic y su influencia.</p>
+<p><strong>Pclass</strong>: se analizará la influencia de clase del
 pasajero.</p>
-<p><em>Sex</em>: influencia del sexo del pasajero en la
+<p><strong>Sex</strong>: influencia del sexo del pasajero en la
 supervivencia.</p>
-<p><em>SibSp</em> y <em>Parch</em>: influencia del número de
-hermanos/hermanas, esposos/esposas a bordo del Titanic en la
+<p><strong>SibSp</strong> y <strong>Parch</strong>: influencia del
+número de hermanos/hermanas, esposos/esposas a bordo del Titanic en la
 supervivencia.</p>
 <p>Vamos a hacer un primer análisis descriptivo de cual podría ser la
 relacion entre estas variables y la probabilida de supervivencia de los
@@ -2245,6 +2245,34 @@ ser utilizado en la competición presentada</p>
 pred_vs_real &lt;- merge(real_res,res_df, by=c(&quot;PassengerId&quot;), all.x=TRUE)</code></pre>
 <p>La predicción de nuestro modelo ha acertado un <code>93.78</code>% de
 los casos, lo cual consideramos es un resultado muy satisfactorio.</p>
+<p>Exportamos por tanto la solución encontrada:</p>
+<pre class="r"><code>write.csv(res_df,&#39;prediction.csv&#39;)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="center"><strong>Contribucion</strong></th>
+<th align="center"><strong>Firma</strong></th>
+<th align="center"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center"><strong>Investigación previa</strong></td>
+<td align="center">VCC , MMG</td>
+<td align="center"></td>
+</tr>
+<tr class="even">
+<td align="center"><strong>Redacción de las respuestas</strong></td>
+<td align="center">VCC , MMG</td>
+<td align="center"></td>
+</tr>
+<tr class="odd">
+<td align="center"><strong>Desarrollo código</strong></td>
+<td align="center">VCC , MMG</td>
+<td align="center"></td>
+</tr>
+</tbody>
+</table>
 </div>
 
 
